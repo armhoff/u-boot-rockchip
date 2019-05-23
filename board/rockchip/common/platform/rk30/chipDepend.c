@@ -516,7 +516,7 @@ void FW_NandDeInit(void)
         FlashDeInit();
     }
 #endif
-#ifdef RK_SDMMC_BOOT_EN
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
     SdmmcDeInit();
 #endif
 }
@@ -613,7 +613,7 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
 //mode=0  changemode to boot mode
 int32 eMMC_changemode(uint8 mode)
 { 
-#ifdef RK_SDMMC_BOOT_EN    
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
     eMMC_SetDataHigh();
 #endif
 }
