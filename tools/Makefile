@@ -98,12 +98,15 @@ BIN_FILES-$(CONFIG_STATIC_RELA) += relocate-rela$(SFX)
 
 # Source files which exist outside the tools directory
 EXT_OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += common/env_embedded.o
+EXT_OBJ_FILES-y += common/hash.o
 EXT_OBJ_FILES-y += common/image.o
 EXT_OBJ_FILES-$(CONFIG_FIT) += common/image-fit.o
 EXT_OBJ_FILES-y += common/image-sig.o
 EXT_OBJ_FILES-y += lib/crc32.o
 EXT_OBJ_FILES-y += lib/md5.o
+EXT_OBJ_FILES-y += lib/rc4.o
 EXT_OBJ_FILES-y += lib/sha1.o
+EXT_OBJ_FILES-y += lib/sha256.o
 EXT_OBJ_FILES-y += lib/sha.o
 
 # Source files located in the tools directory
@@ -160,6 +163,7 @@ LIBFDT_OBJ_FILES-y += fdt_strerror.o
 LIBFDT_OBJ_FILES-y += fdt_wip.o
 
 # RSA objects
+RSA_OBJ_FILES-y += rsa-checksum.o
 RSA_OBJ_FILES-$(CONFIG_FIT_SIGNATURE) += rsa-sign.o
 
 # Generated LCD/video logo
@@ -263,8 +267,9 @@ $(obj)dumpimage$(SFX):	$(obj)aisimage.o \
 			$(obj)crc32.o \
 			$(obj)default_image.o \
 			$(obj)fit_image.o \
-			$(obj)image-fit.o \
+			$(obj)hash.o \
 			$(obj)image.o \
+			$(obj)image-fit.o \
 			$(obj)image-host.o \
 			$(obj)imagetool.o \
 			$(obj)imximage.o \
@@ -275,7 +280,9 @@ $(obj)dumpimage$(SFX):	$(obj)aisimage.o \
 			$(obj)omapimage.o \
 			$(obj)os_support.o \
 			$(obj)pblimage.o \
+			$(obj)rc4.o \
 			$(obj)sha1.o \
+			$(obj)sha256.o \
 			$(obj)ublimage.o \
 			$(LIBFDT_OBJS) \
 			$(RSA_OBJS)
@@ -296,9 +303,10 @@ $(obj)mkimage$(SFX):	$(obj)aisimage.o \
 			$(obj)crc32.o \
 			$(obj)default_image.o \
 			$(obj)fit_image.o \
+			$(obj)hash.o \
+			$(obj)image.o \
 			$(obj)image-fit.o \
 			$(obj)image-host.o \
-			$(obj)image.o \
 			$(obj)imagetool.o \
 			$(obj)imximage.o \
 			$(obj)kwbimage.o \
@@ -308,7 +316,9 @@ $(obj)mkimage$(SFX):	$(obj)aisimage.o \
 			$(obj)omapimage.o \
 			$(obj)os_support.o \
 			$(obj)pblimage.o \
+			$(obj)rc4.o \
 			$(obj)sha1.o \
+			$(obj)sha256.o \
 			$(obj)ublimage.o \
 			$(LIBFDT_OBJS) \
 			$(RSA_OBJS)
