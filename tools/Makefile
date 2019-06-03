@@ -81,6 +81,8 @@ BIN_FILES-$(CONFIG_CMD_NET) += gen_eth_addr$(SFX)
 BIN_FILES-$(CONFIG_CMD_LOADS) += img2srec$(SFX)
 BIN_FILES-$(CONFIG_XWAY_SWAP_BYTES) += xway-swap-bytes$(SFX)
 BIN_FILES-y += dumpimage$(SFX)
+BIN_FILES-$(CONFIG_FIT_SIGNATURE) += fit_check_sign$(SFX)
+BIN_FILES-y += fit_info$(SFX)
 BIN_FILES-y += mkenvimage$(SFX)
 BIN_FILES-y += mkimage$(SFX)
 BIN_FILES-$(CONFIG_EXYNOS5250) += mk$(BOARD)spl$(SFX)
@@ -98,12 +100,15 @@ BIN_FILES-$(CONFIG_STATIC_RELA) += relocate-rela$(SFX)
 
 # Source files which exist outside the tools directory
 EXT_OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += common/env_embedded.o
+EXT_OBJ_FILES-y += common/hash.o
 EXT_OBJ_FILES-y += common/image.o
 EXT_OBJ_FILES-$(CONFIG_FIT) += common/image-fit.o
 EXT_OBJ_FILES-y += common/image-sig.o
 EXT_OBJ_FILES-y += lib/crc32.o
 EXT_OBJ_FILES-y += lib/md5.o
+EXT_OBJ_FILES-y += lib/rc4.o
 EXT_OBJ_FILES-y += lib/sha1.o
+EXT_OBJ_FILES-y += lib/sha256.o
 EXT_OBJ_FILES-y += lib/sha.o
 
 # Source files located in the tools directory
@@ -113,7 +118,12 @@ OBJ_FILES-$(CONFIG_VIDEO_LOGO) += bmp_logo.o
 NOPED_OBJ_FILES-y += aisimage.o
 NOPED_OBJ_FILES-y += default_image.o
 NOPED_OBJ_FILES-y += dumpimage.o
+NOPED_OBJ_FILES-$(CONFIG_FIT_SIGNATURE) += fit_check_sign.o
+NOPED_OBJ_FILES-y += fit_common.o
 NOPED_OBJ_FILES-y += fit_image.o
+NOPED_OBJ_FILES-y += fit_info.o
+NOPED_OBJ_FILES-y += gpimage.o
+NOPED_OBJ_FILES-y += gpimage-common.o
 NOPED_OBJ_FILES-y += image-host.o
 NOPED_OBJ_FILES-y += imximage.o
 NOPED_OBJ_FILES-y += kwbimage.o
@@ -123,8 +133,13 @@ NOPED_OBJ_FILES-y += mkimage.o
 NOPED_OBJ_FILES-y += mxsimage.o
 NOPED_OBJ_FILES-y += omapimage.o
 NOPED_OBJ_FILES-y += os_support.o
+NOPED_OBJ_FILES-y += pbl_crc32.o
 NOPED_OBJ_FILES-y += pblimage.o
 NOPED_OBJ_FILES-y += proftool.o
+NOPED_OBJ_FILES-y += rkcommon.o
+NOPED_OBJ_FILES-y += rkimage.o
+NOPED_OBJ_FILES-y += rksd.o
+NOPED_OBJ_FILES-y += rkspi.o
 NOPED_OBJ_FILES-y += ublimage.o
 NOPED_OBJ_FILES-y += relocate-rela.o
 OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += envcrc.o
@@ -160,7 +175,15 @@ LIBFDT_OBJ_FILES-y += fdt_strerror.o
 LIBFDT_OBJ_FILES-y += fdt_wip.o
 
 # RSA objects
+RSA_OBJ_FILES-y += rsa-checksum.o
 RSA_OBJ_FILES-$(CONFIG_FIT_SIGNATURE) += rsa-sign.o
+
+# Rockchip objects
+RK_COMMON_OBJ_FILES-y += rc4.o
+RK_COMMON_OBJ_FILES-y += rkcommon.o
+RK_IMAGE_OBJ_FILES-y += rkimage.o
+RK_IMAGE_OBJ_FILES-y += rksd.o
+RK_IMAGE_OBJ_FILES-y += rkspi.o
 
 # Generated LCD/video logo
 LOGO_H = $(OBJTREE)/include/bmp_logo.h
@@ -193,6 +216,8 @@ HOSTSRCS += $(addprefix $(SRCTREE)/lib/rsa/,$(RSA_OBJ_FILES-y:.o=.c))
 BINS	:= $(addprefix $(obj),$(sort $(BIN_FILES-y)))
 LIBFDT_OBJS	:= $(addprefix $(obj),$(LIBFDT_OBJ_FILES-y))
 RSA_OBJS	:= $(addprefix $(obj),$(RSA_OBJ_FILES-y))
+RK_COMMON_OBJS	:= $(addprefix $(obj),$(RK_COMMON_OBJ_FILES-y))
+RK_IMAGE_OBJS	:= $(addprefix $(obj),$(RK_IMAGE_OBJ_FILES-y))
 
 # We cannot check CONFIG_FIT_SIGNATURE here since it is not set on the host
 FIT_SIG_OBJ_FILES	:= image-sig.o
@@ -200,6 +225,36 @@ FIT_SIG_OBJS		:= $(addprefix $(obj),$(FIT_SIG_OBJ_FILES))
 
 HOSTOBJS := $(addprefix $(obj),$(OBJ_FILES-y))
 NOPEDOBJS := $(addprefix $(obj),$(NOPED_OBJ_FILES-y))
+
+# common objs for dumpimage and mkimage
+dumpimage-mkimage-objs := $(obj)aisimage.o \
+			$(FIT_SIG_OBJS) \
+			$(obj)crc32.o \
+			$(obj)default_image.o \
+			$(obj)fit_common.o \
+			$(obj)fit_image.o \
+			$(obj)gpimage.o \
+			$(obj)gpimage-common.o \
+			$(obj)hash.o \
+			$(obj)image.o \
+			$(obj)image-fit.o \
+			$(obj)image-host.o \
+			$(obj)imagetool.o \
+			$(obj)imximage.o \
+			$(obj)kwbimage.o \
+			$(obj)md5.o \
+			$(obj)mxsimage.o \
+			$(obj)omapimage.o \
+			$(obj)os_support.o \
+			$(obj)pbl_crc32.o \
+			$(obj)pblimage.o \
+			$(obj)sha1.o \
+			$(obj)sha256.o \
+			$(obj)ublimage.o \
+			$(LIBFDT_OBJS) \
+			$(RK_COMMON_OBJS) \
+			$(RK_IMAGE_OBJS) \
+			$(RSA_OBJS)
 
 #
 # Use native tools and options
@@ -258,27 +313,20 @@ $(obj)xway-swap-bytes$(SFX):	$(obj)xway-swap-bytes.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
-$(obj)dumpimage$(SFX):	$(obj)aisimage.o \
-			$(FIT_SIG_OBJS) \
-			$(obj)crc32.o \
-			$(obj)default_image.o \
-			$(obj)fit_image.o \
-			$(obj)image-fit.o \
-			$(obj)image.o \
-			$(obj)image-host.o \
-			$(obj)imagetool.o \
-			$(obj)imximage.o \
-			$(obj)kwbimage.o \
-			$(obj)dumpimage.o \
-			$(obj)md5.o \
-			$(obj)mxsimage.o \
-			$(obj)omapimage.o \
-			$(obj)os_support.o \
-			$(obj)pblimage.o \
-			$(obj)sha1.o \
-			$(obj)ublimage.o \
-			$(LIBFDT_OBJS) \
-			$(RSA_OBJS)
+$(obj)dumpimage$(SFX):	$(obj)dumpimage.o \
+			$(dumpimage-mkimage-objs)	
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^ $(HOSTLIBS)
+	$(HOSTSTRIP) $@
+
+ifdef CONFIG_FIT_SIGNATURE
+$(obj)fit_check_sign$(SFX):	$(obj)fit_check_sign.o \
+			$(dumpimage-mkimage-objs)	
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^ $(HOSTLIBS)
+	$(HOSTSTRIP) $@
+endif
+
+$(obj)fit_info$(SFX):	$(obj)fit_info.o \
+			$(dumpimage-mkimage-objs)	
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^ $(HOSTLIBS)
 	$(HOSTSTRIP) $@
 
@@ -291,27 +339,8 @@ $(obj)checksum$(SFX): \
 			$(obj)crc32.o \
 			$(obj)checksum.o \
 
-$(obj)mkimage$(SFX):	$(obj)aisimage.o \
-			$(FIT_SIG_OBJS) \
-			$(obj)crc32.o \
-			$(obj)default_image.o \
-			$(obj)fit_image.o \
-			$(obj)image-fit.o \
-			$(obj)image-host.o \
-			$(obj)image.o \
-			$(obj)imagetool.o \
-			$(obj)imximage.o \
-			$(obj)kwbimage.o \
-			$(obj)md5.o \
-			$(obj)mkimage.o \
-			$(obj)mxsimage.o \
-			$(obj)omapimage.o \
-			$(obj)os_support.o \
-			$(obj)pblimage.o \
-			$(obj)sha1.o \
-			$(obj)ublimage.o \
-			$(LIBFDT_OBJS) \
-			$(RSA_OBJS)
+$(obj)mkimage$(SFX): $(obj)mkimage.o \
+			$(dumpimage-mkimage-objs)
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^ $(HOSTLIBS)
 	$(HOSTSTRIP) $@
 
@@ -358,7 +387,8 @@ $(obj)loaderimage$(SFX):	$(obj)loaderimage.o $(obj)sha.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
-$(obj)boot_merger$(SFX):	$(obj)boot_merger.o
+$(obj)boot_merger$(SFX):	$(obj)boot_merger.o \
+			$(RK_COMMON_OBJS)
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
