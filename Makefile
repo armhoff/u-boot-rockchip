@@ -834,12 +834,17 @@ clean:
 	       $(obj)examples/standalone/test_burst			  \
 	       $(obj)examples/standalone/timer
 	@rm -f $(obj)examples/api/demo{,.bin}
-	@rm -f $(obj)tools/bmp_logo	   $(obj)tools/easylogo/easylogo  \
+	@rm -f $(obj)tools/bmp_logo	\
+	       $(obj)tools/boot_merger \
+	       $(obj)tools/checksum \
+	       $(obj)tools/easylogo/easylogo  \
 	       $(obj)tools/env/fw_printenv				  \
 	       $(obj)tools/envcrc					  \
+	       $(obj)tools/fit_info \
 	       $(obj)tools/gdb/{gdbcont,gdbsend}			  \
 	       $(obj)tools/gen_eth_addr    $(obj)tools/img2srec		  \
 	       $(obj)tools/dump{env,}image		  \
+	       $(obj)tools/loaderimage \
 	       $(obj)tools/mk{env,}image   $(obj)tools/mpc86x_clk	  \
 	       $(obj)tools/mk{$(BOARD),}spl				  \
 	       $(obj)tools/mxsboot					  \
