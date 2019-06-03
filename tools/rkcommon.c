@@ -66,7 +66,12 @@ int rkcommon_set_header(void *buf, uint file_size)
 
 	debug("size=%x, %x\n", params->file_size, hdr->usflashdatasize);
 
-	rc4_encode(buf, RK_BLK_SIZE, rc4_key);
+	rkcommon_rc4_encode(buf, RK_BLK_SIZE);
 
 	return 0;
+}
+
+void rkcommon_rc4_encode(void *buf, uint len)
+{
+	rc4_encode(buf, len, rc4_key);
 }

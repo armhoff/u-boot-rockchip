@@ -25,4 +25,6 @@ enum {
  */
 int rkcommon_set_header(void *buf, uint file_size);
 
+void rkcommon_rc4_encode(void *buf, uint len);
+
 #endif

@@ -1,4 +1,5 @@
 #include "boot_merger.h"
+#include "rkcommon.h"
 #include <time.h>
 #include <sys/stat.h>  
 
@@ -93,40 +94,6 @@ uint32_t CRC_32(uint8_t* pData, uint32_t ulSize) {
     }
     return nAccum;
 }
-
-void P_RC4(uint8_t* buf, uint32_t len) {
-	uint8_t S[256],K[256],temp;
-	uint32_t i,j,t,x;
-	uint8_t key[16]={124,78,3,4,85,5,9,7,45,44,123,56,23,13,23,17};
-	
-	j = 0;
-	for(i=0; i<256; i++){
-		S[i] = (uint8_t)i;
-		j&=0x0f;
-		K[i] = key[j];
-		j++;
-	}
-	
-	j = 0;
-	for(i=0; i<256; i++){
-		j = (j + S[i] + K[i]) % 256;
-		temp = S[i];
-		S[i] = S[j];
-		S[j] = temp;
-	}
-	
-	i = j = 0;
-	for(x=0; x<len; x++){
-		i = (i+1) % 256;
-		j = (j + S[i]) % 256;
-		temp = S[i];
-		S[i] = S[j];
-		S[j] = temp;
-		t = (S[i] + (S[j] % 256)) % 256;
-		buf[x] = buf[x] ^ S[t];
-	}
-}
-
 
 static inline void fixPath(char* path) {
     int i, len = strlen(path);
@@ -522,14 +489,14 @@ static bool writeFile(FILE* outFile, const char* path, bool fix) {
         buf = gBuf;
         size = fixSize;
         while(1) {
-            P_RC4(buf, fixSize < SMALL_PACKET ? fixSize : SMALL_PACKET);
+            rkcommon_rc4_encode(buf, fixSize < SMALL_PACKET ? fixSize : SMALL_PACKET);
             buf += SMALL_PACKET;
             if (fixSize <= SMALL_PACKET)
                 break;
             fixSize -= SMALL_PACKET;
         }
     } else {
-        P_RC4(gBuf, size);
+        rkcommon_rc4_encode(gBuf, size);
     }
 
     if (!fwrite(gBuf, size, 1, outFile))
@@ -768,13 +735,13 @@ static bool unpackEntry(rk_boot_entry* entry, const char* name,
         goto end;
     if (entry->type == ENTRY_LOADER) {
         for(i=0; i<size/SMALL_PACKET; i++)
-            P_RC4(gBuf + i * SMALL_PACKET, SMALL_PACKET);
+            rkcommon_rc4_encode(gBuf + i * SMALL_PACKET, SMALL_PACKET);
         if (size % SMALL_PACKET)
         {
-            P_RC4(gBuf + i * SMALL_PACKET, size - SMALL_PACKET * 512);
+            rkcommon_rc4_encode(gBuf + i * SMALL_PACKET, size - SMALL_PACKET * 512);
         }
     } else {
-        P_RC4(gBuf, size);
+        rkcommon_rc4_encode(gBuf, size);
     }
     if (!fwrite(gBuf, size, 1, outFile))
         goto end;

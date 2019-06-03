@@ -179,11 +179,11 @@ RSA_OBJ_FILES-y += rsa-checksum.o
 RSA_OBJ_FILES-$(CONFIG_FIT_SIGNATURE) += rsa-sign.o
 
 # Rockchip objects
-RK_OBJ_FILES-y += rc4.o
-RK_OBJ_FILES-y += rkcommon.o
-RK_OBJ_FILES-y += rkimage.o
-RK_OBJ_FILES-y += rksd.o
-RK_OBJ_FILES-y += rkspi.o
+RK_COMMON_OBJ_FILES-y += rc4.o
+RK_COMMON_OBJ_FILES-y += rkcommon.o
+RK_IMAGE_OBJ_FILES-y += rkimage.o
+RK_IMAGE_OBJ_FILES-y += rksd.o
+RK_IMAGE_OBJ_FILES-y += rkspi.o
 
 # Generated LCD/video logo
 LOGO_H = $(OBJTREE)/include/bmp_logo.h
@@ -216,7 +216,8 @@ HOSTSRCS += $(addprefix $(SRCTREE)/lib/rsa/,$(RSA_OBJ_FILES-y:.o=.c))
 BINS	:= $(addprefix $(obj),$(sort $(BIN_FILES-y)))
 LIBFDT_OBJS	:= $(addprefix $(obj),$(LIBFDT_OBJ_FILES-y))
 RSA_OBJS	:= $(addprefix $(obj),$(RSA_OBJ_FILES-y))
-RK_OBJS		:= $(addprefix $(obj),$(RK_OBJ_FILES-y))
+RK_COMMON_OBJS	:= $(addprefix $(obj),$(RK_COMMON_OBJ_FILES-y))
+RK_IMAGE_OBJS	:= $(addprefix $(obj),$(RK_IMAGE_OBJ_FILES-y))
 
 # We cannot check CONFIG_FIT_SIGNATURE here since it is not set on the host
 FIT_SIG_OBJ_FILES	:= image-sig.o
@@ -251,7 +252,8 @@ dumpimage-mkimage-objs := $(obj)aisimage.o \
 			$(obj)sha256.o \
 			$(obj)ublimage.o \
 			$(LIBFDT_OBJS) \
-			$(RK_OBJS) \
+			$(RK_COMMON_OBJS) \
+			$(RK_IMAGE_OBJS) \
 			$(RSA_OBJS)
 
 #
@@ -385,7 +387,8 @@ $(obj)loaderimage$(SFX):	$(obj)loaderimage.o $(obj)sha.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
-$(obj)boot_merger$(SFX):	$(obj)boot_merger.o
+$(obj)boot_merger$(SFX):	$(obj)boot_merger.o \
+			$(RK_COMMON_OBJS)
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
