@@ -36,7 +36,7 @@
 
 #include <u-boot/md5.h>
 #include <u-boot/sha1.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/io.h>
 
 #ifdef CONFIG_CMD_BDI
@@ -67,7 +67,7 @@ static const image_header_t *image_get_ramdisk(ulong rd_addr, uint8_t arch,
 #endif
 
 static const table_entry_t uimage_arch[] = {
-	{	IH_ARCH_INVALID,	NULL,		"Invalid ARCH",	},
+	{	IH_ARCH_INVALID,	"invalid",	"Invalid ARCH",	},
 	{	IH_ARCH_ALPHA,		"alpha",	"Alpha",	},
 	{	IH_ARCH_ARM,		"arm",		"ARM",		},
 	{	IH_ARCH_I386,		"x86",		"Intel x86",	},
@@ -95,7 +95,7 @@ static const table_entry_t uimage_arch[] = {
 };
 
 static const table_entry_t uimage_os[] = {
-	{	IH_OS_INVALID,	NULL,		"Invalid OS",		},
+	{	IH_OS_INVALID,	"invalid",	"Invalid OS",		},
 	{	IH_OS_LINUX,	"linux",	"Linux",		},
 #if defined(CONFIG_LYNXKDI) || defined(USE_HOSTCC)
 	{	IH_OS_LYNXOS,	"lynxos",	"LynxOS",		},
@@ -142,7 +142,7 @@ static const table_entry_t uimage_type[] = {
 	{	IH_TYPE_KERNEL_NOLOAD, "kernel_noload",  "Kernel Image (no loading done)", },
 	{	IH_TYPE_KWBIMAGE,   "kwbimage",   "Kirkwood Boot Image",},
 	{	IH_TYPE_IMXIMAGE,   "imximage",   "Freescale i.MX Boot Image",},
-	{	IH_TYPE_INVALID,    NULL,	  "Invalid Image",	},
+	{	IH_TYPE_INVALID,    "invalid",	  "Invalid Image",	},
 	{	IH_TYPE_MULTI,	    "multi",	  "Multi-File Image",	},
 	{	IH_TYPE_OMAPIMAGE,  "omapimage",  "TI OMAP SPL With GP CH",},
 	{	IH_TYPE_PBLIMAGE,   "pblimage",   "Freescale PBL Boot Image",},
@@ -158,6 +158,7 @@ static const table_entry_t uimage_type[] = {
 	{	IH_TYPE_RKIMAGE,    "rkimage",    "Rockchip Boot Image" },
 	{	IH_TYPE_RKSD,       "rksd",       "Rockchip SD Boot Image" },
 	{	IH_TYPE_RKSPI,      "rkspi",      "Rockchip SPI Boot Image" },
+	{	IH_TYPE_RKNAND,     "rknand",     "Rockchip NAND Boot Image" },
 	{	-1,		    "",		  "",			},
 };
 
@@ -168,6 +169,19 @@ static const table_entry_t uimage_comp[] = {
 	{	IH_COMP_LZMA,	"lzma",		"lzma compressed",	},
 	{	IH_COMP_LZO,	"lzo",		"lzo compressed",	},
 	{	-1,		"",		"",			},
+};
+
+struct table_info {
+	const char *desc;
+	int count;
+	const table_entry_t *table;
+};
+
+static const struct table_info table_info[IH_COUNT] = {
+	{ "architecture", IH_ARCH_COUNT, uimage_arch },
+	{ "compression", IH_COMP_COUNT, uimage_comp },
+	{ "operating system", IH_OS_COUNT, uimage_os },
+	{ "image type", IH_TYPE_COUNT, uimage_type },
 };
 
 /*****************************************************************************/
@@ -559,6 +573,76 @@ const table_entry_t *get_table_entry(const table_entry_t *table, int id)
 	return NULL;
 }
 
+static const char *unknown_msg(enum ih_category category)
+{
+	static const char unknown_str[] = "Unknown ";
+	static char msg[30];
+
+	strcpy(msg, unknown_str);
+	strncat(msg, table_info[category].desc,
+		sizeof(msg) - sizeof(unknown_str));
+
+	return msg;
+}
+
+/**
+ * get_cat_table_entry_name - translate entry id to long name
+ * @category: category to look up (enum ih_category)
+ * @id: entry id to be translated
+ *
+ * This will scan the translation table trying to find the entry that matches
+ * the given id.
+ *
+ * @retur long entry name if translation succeeds; error string on failure
+ */
+const char *genimg_get_cat_name(enum ih_category category, uint id)
+{
+	const table_entry_t *entry;
+
+	entry = get_table_entry(table_info[category].table, id);
+	if (!entry)
+		return unknown_msg(category);
+#if defined(USE_HOSTCC) || !defined(CONFIG_NEEDS_MANUAL_RELOC)
+	return entry->lname;
+#else
+	return entry->lname + gd->reloc_off;
+#endif
+}
+
+/**
+ * get_cat_table_entry_short_name - translate entry id to short name
+ * @category: category to look up (enum ih_category)
+ * @id: entry id to be translated
+ *
+ * This will scan the translation table trying to find the entry that matches
+ * the given id.
+ *
+ * @retur short entry name if translation succeeds; error string on failure
+ */
+const char *genimg_get_cat_short_name(enum ih_category category, uint id)
+{
+	const table_entry_t *entry;
+
+	entry = get_table_entry(table_info[category].table, id);
+	if (!entry)
+		return unknown_msg(category);
+#if defined(USE_HOSTCC) || !defined(CONFIG_NEEDS_MANUAL_RELOC)
+	return entry->sname;
+#else
+	return entry->sname + gd->reloc_off;
+#endif
+}
+
+int genimg_get_cat_count(enum ih_category category)
+{
+	return table_info[category].count;
+}
+
+const char *genimg_get_cat_desc(enum ih_category category)
+{
+	return table_info[category].desc;
+}
+
 /**
  * get_table_entry_name - translate entry id to long name
  * @table: pointer to a translation table for entries of a specific type
@@ -601,11 +685,9 @@ const char *genimg_get_type_name(uint8_t type)
 	return (get_table_entry_name(uimage_type, "Unknown Image", type));
 }
 
-const char *genimg_get_type_short_name(uint8_t type)
+static const char *genimg_get_short_name(const table_entry_t *table, int val)
 {
-	const table_entry_t *table;
-
-	table = get_table_entry(uimage_type, type);
+	table = get_table_entry(table, val);
 	if (!table)
 		return "unknown";
 #if defined(USE_HOSTCC) || !defined(CONFIG_NEEDS_MANUAL_RELOC)
@@ -615,10 +697,30 @@ const char *genimg_get_type_short_name(uint8_t type)
 #endif
 }
 
+const char *genimg_get_type_short_name(uint8_t type)
+{
+	return genimg_get_short_name(uimage_type, type);
+}
+
 const char *genimg_get_comp_name(uint8_t comp)
 {
 	return (get_table_entry_name(uimage_comp, "Unknown Compression",
 					comp));
+}
+
+const char *genimg_get_comp_short_name(uint8_t comp)
+{
+	return genimg_get_short_name(uimage_comp, comp);
+}
+
+const char *genimg_get_os_short_name(uint8_t os)
+{
+	return genimg_get_short_name(uimage_os, os);
+}
+
+const char *genimg_get_arch_short_name(uint8_t arch)
+{
+	return genimg_get_short_name(uimage_arch, arch);
 }
 
 /**
