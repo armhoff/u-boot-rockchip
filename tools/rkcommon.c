@@ -68,6 +68,7 @@ struct spl_info {
 
 static struct spl_info spl_infos[] = {
 	{ "rk3036", "RK30", 0x1000, false },
+	{ "rk3066", "RK30", 0x8000, true },
 	{ "rk3128", "RK31", 0x1800, false },
 	{ "rk3188", "RK31", 0x8000 - 0x800, true },
 	{ "rk322x", "RK32", 0x8000 - 0x1000, false },
@@ -153,8 +154,8 @@ bool rkcommon_need_rc4_spl(struct image_tool_params *params)
 	return info->spl_rc4;
 }
 
-static void rkcommon_set_header0(void *buf, uint file_size,
-				 struct image_tool_params *params)
+static void rkcommon_set_header0(void *buf, uint file_size, uint max_size,
+ 				 struct image_tool_params *params)
 {
 	struct header0_info *hdr = buf;
 
@@ -180,20 +181,21 @@ static void rkcommon_set_header0(void *buf, uint file_size,
 	 * see https://lists.denx.de/pipermail/u-boot/2017-May/293267.html
 	 * for a more detailed explanation by Andy Yan
 	 */
-	hdr->init_boot_size = hdr->init_size + RK_MAX_BOOT_SIZE / RK_BLK_SIZE;
+	hdr->init_boot_size = hdr->init_size + DIV_ROUND_UP(max_size, RK_BLK_SIZE);
+	hdr->init_boot_size = ROUND(hdr->init_boot_size, 4);
 
 	rkcommon_rc4_encode(buf, RK_BLK_SIZE);
 }
 
-int rkcommon_set_header(void *buf, uint file_size,
-			struct image_tool_params *params)
+int rkcommon_set_header(void *buf, uint file_size, uint max_size,
+ 			struct image_tool_params *params)
 {
 	struct header1_info *hdr = buf + RK_SPL_HDR_START;
 
 	if (file_size > rkcommon_get_spl_size(params))
 		return -ENOSPC;
 
-	rkcommon_set_header0(buf, file_size, params);
+	rkcommon_set_header0(buf, file_size, max_size, params);
 
 	/* Set up the SPL name (i.e. copy spl_hdr over) */
 	memcpy(&hdr->magic, rkcommon_get_spl_hdr(params), RK_SPL_HDR_SIZE);

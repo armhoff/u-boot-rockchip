@@ -280,6 +280,7 @@ enum {
 	IH_TYPE_RKIMAGE,		/* Rockchip Boot Image		*/
 	IH_TYPE_RKSD,			/* Rockchip SD card		*/
 	IH_TYPE_RKSPI,			/* Rockchip SPI image		*/
+	IH_TYPE_RKNAND,			/* Rockchip NAND Boot Image	*/
 
 	IH_TYPE_COUNT,			/* Number of image types */
 };

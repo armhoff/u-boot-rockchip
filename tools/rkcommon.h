@@ -50,10 +50,11 @@ int rkcommon_get_spl_size(struct image_tool_params *params);
  *
  * @buf:	Pointer to header place (must be at least 2KB in size)
  * @file_size:	Size of the file we want the boot ROM to load, in bytes
+ * @max_size:	Max. size for the boot file in bytes
  * @return 0 if OK, -ENOSPC if too large
  */
-int rkcommon_set_header(void *buf, uint file_size,
-			struct image_tool_params *params);
+int rkcommon_set_header(void *buf, uint file_size, uint max_size,
+ 			struct image_tool_params *params);
 
 /**
  * rkcommon_verify_header() - verify the header for a Rockchip boot image

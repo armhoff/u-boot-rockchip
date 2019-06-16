@@ -138,6 +138,7 @@ NOPED_OBJ_FILES-y += pblimage.o
 NOPED_OBJ_FILES-y += proftool.o
 NOPED_OBJ_FILES-y += rkcommon.o
 NOPED_OBJ_FILES-y += rkimage.o
+NOPED_OBJ_FILES-y += rknand.o
 NOPED_OBJ_FILES-y += rksd.o
 NOPED_OBJ_FILES-y += rkspi.o
 NOPED_OBJ_FILES-y += ublimage.o
@@ -182,6 +183,7 @@ RSA_OBJ_FILES-$(CONFIG_FIT_SIGNATURE) += rsa-sign.o
 RK_COMMON_OBJ_FILES-y += rc4.o
 RK_COMMON_OBJ_FILES-y += rkcommon.o
 RK_IMAGE_OBJ_FILES-y += rkimage.o
+RK_IMAGE_OBJ_FILES-y += rknand.o
 RK_IMAGE_OBJ_FILES-y += rksd.o
 RK_IMAGE_OBJ_FILES-y += rkspi.o
 
