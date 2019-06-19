@@ -154,7 +154,7 @@ bool rkcommon_need_rc4_spl(struct image_tool_params *params)
 	return info->spl_rc4;
 }
 
-static void rkcommon_set_header0(void *buf, uint file_size, uint max_size,
+static void rkcommon_set_header0(void *buf, uint spl_file_buf_size, uint extra_file_buf_size,
  				 struct image_tool_params *params)
 {
 	struct header0_info *hdr = buf;
@@ -164,7 +164,7 @@ static void rkcommon_set_header0(void *buf, uint file_size, uint max_size,
 	hdr->disable_rc4 = !rkcommon_need_rc4_spl(params);
 	hdr->init_offset = RK_INIT_OFFSET;
 
-	hdr->init_size = DIV_ROUND_UP(file_size, RK_BLK_SIZE);
+	hdr->init_size = DIV_ROUND_UP(spl_file_buf_size, RK_BLK_SIZE);
 	/*
 	 * The init_size has to be a multiple of 4 blocks (i.e. of 2K)
 	 * or the BootROM will not boot the image.
@@ -181,7 +181,7 @@ static void rkcommon_set_header0(void *buf, uint file_size, uint max_size,
 	 * see https://lists.denx.de/pipermail/u-boot/2017-May/293267.html
 	 * for a more detailed explanation by Andy Yan
 	 */
-	hdr->init_boot_size = hdr->init_size + DIV_ROUND_UP(max_size, RK_BLK_SIZE);
+	hdr->init_boot_size = hdr->init_size + DIV_ROUND_UP(extra_file_buf_size, RK_BLK_SIZE);
 	hdr->init_boot_size = ROUND(hdr->init_boot_size, 4);
 
 	rkcommon_rc4_encode(buf, RK_BLK_SIZE);
@@ -192,17 +192,25 @@ int rkcommon_set_header(void *buf, uint file_size, uint max_size,
 {
 	struct header1_info *hdr = buf + RK_SPL_HDR_START;
 
-	if (file_size > rkcommon_get_spl_size(params))
+	uint extra_file_buf_size = params->extra_file_size + params->extra_pad_len;
+	uint spl_file_buf_size = file_size - extra_file_buf_size;
+	if ((spl_file_buf_size > rkcommon_get_spl_size(params))
+			|| (extra_file_buf_size > max_size))
 		return -ENOSPC;
 
-	rkcommon_set_header0(buf, file_size, max_size, params);
+	rkcommon_set_header0(buf, spl_file_buf_size, extra_file_buf_size, params);
 
-	/* Set up the SPL name (i.e. copy spl_hdr over) */
-	memcpy(&hdr->magic, rkcommon_get_spl_hdr(params), RK_SPL_HDR_SIZE);
+	/* Check if the SPL header fits with the expected one */
+	if (memcmp(&hdr->magic, rkcommon_get_spl_hdr(params), RK_SPL_HDR_SIZE)) {
+		return -EILSEQ;
+	}
 
-	if (rkcommon_need_rc4_spl(params))
-		rkcommon_rc4_encode_spl(buf, RK_SPL_HDR_START,
-					params->file_size - RK_SPL_HDR_START);
+	if (rkcommon_need_rc4_spl(params)) {
+		rkcommon_rc4_encode_spl(buf, RK_SPL_HDR_START, spl_file_buf_size);
+		if (extra_file_buf_size > 0) {
+			rkcommon_rc4_encode_spl(buf, RK_SPL_HDR_START + spl_file_buf_size, extra_file_buf_size);
+		}
+	}
 
 	return 0;
 }
@@ -300,21 +308,23 @@ void rkcommon_print_header(const void *buf)
 
 	ret = rkcommon_parse_header(buf, &header0, &spl_info);
 
-	/* If this is the (unimplemented) RC4 case, then fail silently */
-	if (ret == -ENOSYS)
-		return;
-
-	if (ret < 0) {
+	if ((ret < 0) && (ret != -ENOSYS)) {
 		fprintf(stderr, "Error: image verification failed\n");
 		return;
 	}
+
+	printf("Data Size:    %d bytes\n", header0.init_size * RK_BLK_SIZE);
+	printf("Boot Size:    %d bytes\n", header0.init_boot_size * RK_BLK_SIZE);
+
+	/* If this is the (unimplemented) RC4 case, then fail silently */
+	if (ret == -ENOSYS)
+		return;
 
 	image_type = ret;
 
 	printf("Image Type:   Rockchip %s (%s) boot image\n",
 	       spl_info->spl_hdr,
 	       (image_type == IH_TYPE_RKSD) ? "SD/MMC" : "SPI");
-	printf("Data Size:    %d bytes\n", header0.init_size * RK_BLK_SIZE);
 }
 
 void rkcommon_rc4_encode(void *buf, unsigned int size)
@@ -377,6 +387,10 @@ int rkcommon_vrec_header(struct image_tool_params *params,
 	 */
 	if (!alignment)
 		alignment = 1;
+
+	if (params->extra_file_size > 0) {
+		params->extra_pad_len = ROUND(params->extra_file_size, alignment) - params->extra_file_size;
+	}
 
 	unpadded_size = tparams->header_size + params->file_size;
 	padded_size = ROUND(unpadded_size, alignment);

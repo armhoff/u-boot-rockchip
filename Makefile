@@ -427,6 +427,11 @@ $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
 else
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
+	./tools/mkimage -n rk3066 \
+	                -T rksd \
+	                -d ./tools/rk_tools/30_LPDDR2_300MHz_DDR3_300MHz_20140217.bin \
+	                -X $< \
+	                RK3066Loader_uboot_sdcard_seek64.img
 endif
 
 endif
@@ -876,7 +881,7 @@ tidy:	clean
 
 clobber:	tidy
 	@find $(OBJTREE) -path "$(OBJTREE)/tools/rk_tools/*" -prune -o -type f \( -name '*.srec' \
-		-o -name '*.bin' -o -name u-boot.img \) \
+		-o -name '*.bin' -o -name '*.img' \) \
 		-print0 | xargs -0 rm -f
 	@rm -f $(OBJS) $(obj)*.bak $(obj)ctags $(obj)etags $(obj)TAGS \
 		$(obj)cscope.* $(obj)*.*~

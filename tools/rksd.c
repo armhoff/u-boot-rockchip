@@ -26,10 +26,13 @@ static void rksd_set_header(void *buf,  struct stat *sbuf,  int ifd,
 	 */
 	size = params->file_size - RK_SPL_HDR_START;
 	ret = rkcommon_set_header(buf, size, RK_MAX_BOOT_SIZE, params);
-	if (ret) {
-		/* TODO(sjg@chromium.org): This method should return an error */
-		printf("Warning: SPL image is too large (size %#x) and will "
+	if (ret == -EILSEQ) {
+		fprintf(stderr, "%s: SPL image does not start with magic=%s\n", params->cmdname, rkcommon_get_spl_hdr(params));
+		exit (ret);
+	} else if (ret) {
+		fprintf(stderr, "%s: SPL image is too large (size %#x) and will "
 		       "not boot\n", size);
+		exit (ret);
 	}
 }
 

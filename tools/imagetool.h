@@ -79,6 +79,8 @@ struct image_tool_params {
 	unsigned int external_offset;	/* Add padding to external data */
 	const char *engine_id;	/* Engine to use for signing */
 	char *extraparams;	/* Extra parameters for img creation (-X) */
+	int extra_file_size; /* Filesize of a stage 2 boot loader file (if filename set by extraparams) */
+	int extra_pad_len; /* Count of pad bytes for a stage 2 boot loader if extra_file_size > 0 */
 };
 
 /*

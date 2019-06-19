@@ -447,6 +447,26 @@ int main(int argc, char **argv)
 
 		params.file_size = sbuf.st_size + tparams->header_size;
 		close(dfd);
+
+		if ((params.type == IH_TYPE_RKSD) && (params.extraparams != 0)) {
+			dfd = open(params.extraparams, O_RDONLY | O_BINARY);
+			if (dfd < 0) {
+				fprintf(stderr, "%s: Can't open %s: %s\n",
+					params.cmdname, params.extraparams,
+					strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+
+			if (fstat(dfd, &sbuf) < 0) {
+				fprintf(stderr, "%s: Can't stat %s: %s\n",
+					params.cmdname, params.extraparams,
+					strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+
+			params.extra_file_size = sbuf.st_size;
+			close(dfd);
+		}
 	}
 
 	/*
@@ -556,6 +576,9 @@ int main(int argc, char **argv)
 #endif
 		} else {
 			copy_file(ifd, params.datafile, pad_len);
+			if (params.extra_file_size > 0) {
+				copy_file(ifd, params.extraparams, params.extra_pad_len);
+			}
 		}
 #if defined(IH_TYPE_FIRMWARE_IVT)
 		if (params.type == IH_TYPE_FIRMWARE_IVT) {
