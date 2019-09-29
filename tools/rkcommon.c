@@ -187,21 +187,32 @@ static void rkcommon_set_header0(void *buf, uint spl_file_buf_size, uint extra_f
 	rkcommon_rc4_encode(buf, RK_BLK_SIZE);
 }
 
-int rkcommon_set_header(void *buf, uint file_size, uint max_size,
+int rkcommon_set_header(void *buf, uint file_size, uint max_loader_size,
  			struct image_tool_params *params)
 {
 	struct header1_info *hdr = buf + RK_SPL_HDR_START;
 
 	uint extra_file_buf_size = params->extra_file_size + params->extra_pad_len;
 	uint spl_file_buf_size = file_size - extra_file_buf_size;
-	if ((spl_file_buf_size > rkcommon_get_spl_size(params))
-			|| (extra_file_buf_size > max_size))
+
+	const int max_spl_size = rkcommon_get_spl_size(params);
+	if (spl_file_buf_size > max_spl_size) {
+		fprintf(stderr, "%s: SPL image is too large and will not boot "
+		       "(file: %s, size: %#x, max size: %#x)\n", params->cmdname, params->datafile, spl_file_buf_size, max_spl_size);
 		return -ENOSPC;
+	}
+	if (extra_file_buf_size > max_loader_size) {
+		fprintf(stderr, "%s: Loader image is too large and will not boot "
+		       "(file: %s, size: %#x, max size: %#x)\n", params->cmdname, params->extraparams, extra_file_buf_size, max_loader_size);
+		return -ENOSPC;
+	}
 
 	rkcommon_set_header0(buf, spl_file_buf_size, extra_file_buf_size, params);
 
 	/* Check if the SPL header fits with the expected one */
-	if (memcmp(&hdr->magic, rkcommon_get_spl_hdr(params), RK_SPL_HDR_SIZE)) {
+	const char *spl_hdr = rkcommon_get_spl_hdr(params);
+	if (memcmp(&hdr->magic, spl_hdr, RK_SPL_HDR_SIZE)) {
+		fprintf(stderr, "%s: SPL image %s does not start with magic=%s\n", params->cmdname, params->datafile, spl_hdr);
 		return -EILSEQ;
 	}
 
@@ -313,8 +324,8 @@ void rkcommon_print_header(const void *buf)
 		return;
 	}
 
-	printf("Data Size:    %d bytes\n", header0.init_size * RK_BLK_SIZE);
-	printf("Boot Size:    %d bytes\n", header0.init_boot_size * RK_BLK_SIZE);
+	printf("IDB Data Size: %d bytes (IDB0.init_size: %#x)\n", header0.init_size * RK_BLK_SIZE, header0.init_size);
+	printf("IDB Boot Size: %d bytes (IDB0.init_boot_size: %#x)\n", header0.init_boot_size * RK_BLK_SIZE, header0.init_boot_size);
 
 	/* If this is the (unimplemented) RC4 case, then fail silently */
 	if (ret == -ENOSYS)
